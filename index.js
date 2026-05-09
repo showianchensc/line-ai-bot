@@ -2,18 +2,6 @@ const express = require("express");
 const line = require("@line/bot-sdk");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-if (!process.env.LINE_CHANNEL_ACCESS_TOKEN) {
-  throw new Error("Missing LINE_CHANNEL_ACCESS_TOKEN");
-}
-
-if (!process.env.LINE_CHANNEL_SECRET) {
-  throw new Error("Missing LINE_CHANNEL_SECRET");
-}
-
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error("Missing GEMINI_API_KEY");
-}
-
 const app = express();
 
 const config = {
@@ -22,17 +10,20 @@ const config = {
 };
 
 const client = new line.Client(config);
-
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+app.get("/", (req, res) => {
+  res.status(200).send("LINE AI Bot is running");
+});
+
 app.post("/webhook", line.middleware(config), async (req, res) => {
+  res.status(200).send("OK");
+
   try {
-    const events = req.body.events;
+    const events = req.body.events || [];
 
     for (const event of events) {
-      if (event.type !== "message" || event.message.type !== "text") {
-        continue;
-      }
+      if (event.type !== "message" || event.message.type !== "text") continue;
 
       const userMessage = event.message.text;
 
@@ -42,9 +33,7 @@ app.post("/webhook", line.middleware(config), async (req, res) => {
 
       const result = await model.generateContent(`
 你是宅值所裝潢客服助理。
-
-請使用繁體中文。
-語氣專業、親切、像真人客服。
+請使用繁體中文，語氣專業、親切、像真人客服。
 
 客人訊息：
 ${userMessage}
@@ -54,14 +43,11 @@ ${userMessage}
 
       await client.replyMessage(event.replyToken, {
         type: "text",
-        text: replyText,
+        text: replyText || "您好，我是宅值所客服助理，請問有什麼可以協助您的？",
       });
     }
-
-    res.status(200).send("OK");
   } catch (err) {
-    console.error(err);
-    res.status(500).end();
+    console.error("Webhook error:", err);
   }
 });
 

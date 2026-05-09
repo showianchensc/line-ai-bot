@@ -2,6 +2,18 @@ const express = require("express");
 const line = require("@line/bot-sdk");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
+if (!process.env.LINE_CHANNEL_ACCESS_TOKEN) {
+  throw new Error("Missing LINE_CHANNEL_ACCESS_TOKEN");
+}
+
+if (!process.env.LINE_CHANNEL_SECRET) {
+  throw new Error("Missing LINE_CHANNEL_SECRET");
+}
+
+if (!process.env.GEMINI_API_KEY) {
+  throw new Error("Missing GEMINI_API_KEY");
+}
+
 const app = express();
 
 const config = {

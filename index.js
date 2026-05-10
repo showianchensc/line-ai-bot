@@ -1,3 +1,5 @@
+const { google } = require("googleapis");
+
 const express = require("express");
 const line = require("@line/bot-sdk");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -11,6 +13,34 @@ const config = {
 
 const client = new line.Client(config);
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+const auth = new google.auth.JWT(
+  process.env.GOOGLE_CLIENT_EMAIL,
+  null,
+  process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+  ["https://www.googleapis.com/auth/spreadsheets"]
+);
+
+const sheets = google.sheets({ version: "v4", auth });
+
+async function saveToSheet(userMessage, aiReply) {
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: process.env.GOOGLE_SHEET_ID,
+    range: "工作表1!A:E",
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [[
+        new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" }),
+        userMessage,
+        aiReply,
+        "LINE",
+        "新詢問"
+      ]]
+    }
+  });
+}
+
+
 
 app.get("/", (req, res) => {
   res.status(200).send("LINE AI Bot is running");
@@ -66,6 +96,8 @@ ${userMessage}
 
       const replyText = result.response.text();
 
+      await saveToSheet(userMessage, replyText);
+      
       await client.replyMessage(event.replyToken, {
         type: "text",
         text: replyText || "您好，我是宅值所客服助理，請問有什麼可以協助您的？",

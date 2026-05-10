@@ -24,20 +24,59 @@ const auth = new google.auth.JWT(
 const sheets = google.sheets({ version: "v4", auth });
 
 async function saveToSheet(userMessage, aiReply) {
-  await sheets.spreadsheets.values.append({
-    spreadsheetId: process.env.GOOGLE_SHEET_ID,
-    range: "工作表1!A:E",
-    valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values: [[
-        new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" }),
-        userMessage,
-        aiReply,
-        "LINE",
-        "新詢問"
-      ]]
-    }
-  });
+
+  console.log("開始寫入 Google Sheet");
+
+  let status = "一般詢問";
+
+  const highIntentKeywords = [
+    "預算",
+    "坪數",
+    "丈量",
+    "預約",
+    "報價",
+    "平面圖",
+    "入住",
+    "新成屋",
+    "老屋翻新",
+    "系統櫃",
+    "竹北",
+    "新竹",
+    "竹南",
+    "電話"
+  ];
+
+  const isHighIntent = highIntentKeywords.some(keyword =>
+    userMessage.includes(keyword)
+  );
+
+  if (isHighIntent) {
+    status = "高意願";
+  }
+
+  try {
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: process.env.GOOGLE_SHEET_ID,
+      range: "工作表1!A:E",
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [[
+          new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" }),
+          userMessage,
+          aiReply,
+          "LINE",
+          status
+        ]]
+      }
+    });
+
+    console.log("Google Sheet 寫入成功");
+
+  } catch (err) {
+
+    console.error("Google Sheet Error:", err);
+  }
 }
 
 
